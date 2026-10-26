@@ -5,7 +5,7 @@
   "width": 540,
   "height": 720,
   "aspectRatio": "4:5",
-  "segmentCount": 4,
+  "segmentCount": 3,
   "frames": [
     {
       "name": "seg01_cut1_0s.jpg",
@@ -18,7 +18,7 @@
         "#808080"
       ],
       "url": "/videos/frames/KakaoTalk_20260918_085701359/seg01_cut1_0s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg01_cut1_0s.jpg"
+      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\wealthyCINEMA\\videos\\frames\\KakaoTalk_20260918_085701359\\seg01_cut1_0s.jpg"
     },
     {
       "name": "seg01_cut2_5s.jpg",
@@ -31,7 +31,7 @@
         "#808080"
       ],
       "url": "/videos/frames/KakaoTalk_20260918_085701359/seg01_cut2_5s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg01_cut2_5s.jpg"
+      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\wealthyCINEMA\\videos\\frames\\KakaoTalk_20260918_085701359\\seg01_cut2_5s.jpg"
     },
     {
       "name": "seg01_cut3_9s.jpg",
@@ -44,7 +44,7 @@
         "#404040"
       ],
       "url": "/videos/frames/KakaoTalk_20260918_085701359/seg01_cut3_9s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg01_cut3_9s.jpg"
+      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\wealthyCINEMA\\videos\\frames\\KakaoTalk_20260918_085701359\\seg01_cut3_9s.jpg"
     },
     {
       "name": "seg02_cut1_10s.jpg",
@@ -57,7 +57,7 @@
         "#806060"
       ],
       "url": "/videos/frames/KakaoTalk_20260918_085701359/seg02_cut1_10s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg02_cut1_10s.jpg"
+      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\wealthyCINEMA\\videos\\frames\\KakaoTalk_20260918_085701359\\seg02_cut1_10s.jpg"
     },
     {
       "name": "seg02_cut2_15s.jpg",
@@ -70,7 +70,7 @@
         "#808080"
       ],
       "url": "/videos/frames/KakaoTalk_20260918_085701359/seg02_cut2_15s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg02_cut2_15s.jpg"
+      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\wealthyCINEMA\\videos\\frames\\KakaoTalk_20260918_085701359\\seg02_cut2_15s.jpg"
     },
     {
       "name": "seg02_cut3_19s.jpg",
@@ -83,7 +83,7 @@
         "#80A0A0"
       ],
       "url": "/videos/frames/KakaoTalk_20260918_085701359/seg02_cut3_19s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg02_cut3_19s.jpg"
+      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\wealthyCINEMA\\videos\\frames\\KakaoTalk_20260918_085701359\\seg02_cut3_19s.jpg"
     },
     {
       "name": "seg03_cut1_20s.jpg",
@@ -96,7 +96,7 @@
         "#C0C0C0"
       ],
       "url": "/videos/frames/KakaoTalk_20260918_085701359/seg03_cut1_20s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg03_cut1_20s.jpg"
+      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\wealthyCINEMA\\videos\\frames\\KakaoTalk_20260918_085701359\\seg03_cut1_20s.jpg"
     },
     {
       "name": "seg03_cut2_25s.jpg",
@@ -109,11 +109,11 @@
         "#A0C0C0"
       ],
       "url": "/videos/frames/KakaoTalk_20260918_085701359/seg03_cut2_25s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg03_cut2_25s.jpg"
+      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\wealthyCINEMA\\videos\\frames\\KakaoTalk_20260918_085701359\\seg03_cut2_25s.jpg"
     },
     {
       "name": "seg03_cut3_29s.jpg",
-      "time": 29,
+      "time": 29.1,
       "segmentIndex": 2,
       "palette": [
         "#C0C0C0",
@@ -122,47 +122,8 @@
         "#A0A0A0"
       ],
       "url": "/videos/frames/KakaoTalk_20260918_085701359/seg03_cut3_29s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg03_cut3_29s.jpg"
-    },
-    {
-      "name": "seg04_cut1_30s.jpg",
-      "time": 30,
-      "segmentIndex": 3,
-      "palette": [
-        "#C0C0C0",
-        "#808080",
-        "#606060",
-        "#404040"
-      ],
-      "url": "/videos/frames/KakaoTalk_20260918_085701359/seg04_cut1_30s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg04_cut1_30s.jpg"
-    },
-    {
-      "name": "seg04_cut2_30s.jpg",
-      "time": 30,
-      "segmentIndex": 3,
-      "palette": [
-        "#C0C0C0",
-        "#808080",
-        "#606060",
-        "#404040"
-      ],
-      "url": "/videos/frames/KakaoTalk_20260918_085701359/seg04_cut2_30s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg04_cut2_30s.jpg"
-    },
-    {
-      "name": "seg04_cut3_30s.jpg",
-      "time": 30,
-      "segmentIndex": 3,
-      "palette": [
-        "#C0C0C0",
-        "#808080",
-        "#606060",
-        "#404040"
-      ],
-      "url": "/videos/frames/KakaoTalk_20260918_085701359/seg04_cut3_30s.jpg",
-      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\ad-video-analyzer\\videos\\frames\\KakaoTalk_20260918_085701359\\seg04_cut3_30s.jpg"
+      "savedPath": "c:\\Users\\0508a\\.gemini\\antigravity\\scratch\\wealthyCINEMA\\videos\\frames\\KakaoTalk_20260918_085701359\\seg03_cut3_29s.jpg"
     }
   ],
-  "extractedAt": "2026-10-20T07:33:00.994Z"
+  "extractedAt": "2026-10-26T07:19:24.085Z"
 }

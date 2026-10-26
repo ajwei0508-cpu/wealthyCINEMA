@@ -747,7 +747,7 @@
     </div>
 
     <div class="top-actions">
-      <button class="btn btn-cyan" onclick="copyChatCommand()">🤖 새 영상 채팅창 AI(아트) 정밀 분석 명령어 복사</button>
+      <button class="btn btn-cyan" onclick="runAutoAnalyzeOnCurrentVideo()">🤖 AI 전체 10초 구간 자동 정밀 분석</button>
       <button class="btn" onclick="exportMarkdownReport()">📄 전체 마크다운(.md) 리포트 다운로드</button>
       <button class="btn btn-gold" onclick="saveAllToServer()">💾 서버 리포트 저장 (`reports/`)</button>
     </div>
@@ -1181,10 +1181,12 @@
       // Load saved report from server if available
       const existingRes = await fetch(`/api/report/${encodeURIComponent(state.baseName)}`);
       const existingJson = await existingRes.json();
+      let hasExistingAnalysis = false;
 
-      if (existingJson.ok && existingJson.data && Array.isArray(existingJson.data.segments) && existingJson.data.segments.length > 0) {
+      if (existingJson.ok && existingJson.data && Array.isArray(existingJson.data.segments) && existingJson.data.segments.length > 0 && existingJson.data.segments[0].composition) {
         state.master = existingJson.data.master || state.master;
         state.segments = existingJson.data.segments;
+        hasExistingAnalysis = true;
         syncMasterInputs();
       } else {
         state.segments = [];
@@ -1196,17 +1198,17 @@
             startTime: start,
             endTime: end,
             label: `${formatTime(start)} ~ ${formatTime(Math.round(end))}`,
-            subtitle: `구간 #${i + 1} (${formatTime(start)}~${formatTime(Math.round(end))})`,
+            subtitle: `AI 정밀 분석 중... (${formatTime(start)}~${formatTime(Math.round(end))})`,
             keyframes: [],
             palette: [],
             lightingTone: '',
-            composition: '',
-            dialogue: '',
-            narrative: '',
-            scene: '',
-            imagePrompt: '',
-            videoPrompt: '',
-            audioPrompt: '',
+            composition: '🤖 AI가 실제 영상 프레임과 오디오를 10초 단위로 정밀 해부하고 있습니다 (약 10~15초 소요)...',
+            dialogue: '🤖 AI가 실제 대사·내레이션·자막·효과음을 추출하고 있습니다...',
+            narrative: '🤖 AI가 스토리 전개 및 글로벌 광고 심리학 레퍼런스를 분석하고 있습니다...',
+            scene: '🤖 AI가 배경·인물 외형·조명·컷 전환 미장센을 해부하고 있습니다...',
+            imagePrompt: 'Generating 1:1 First-Frame Image Prompt from actual video frames...',
+            videoPrompt: 'Generating 1:1 Video Motion Clone Prompt from actual video and audio...',
+            audioPrompt: 'Generating Audio/VO/SFX Prompt...',
             negativePrompt: 'morphing face, extra fingers, deformed hands, blurry focal point, bad anatomy, watermark'
           });
         }
@@ -1277,8 +1279,66 @@
       selectSegment(0);
       renderSegmentList();
 
-      statusEl.textContent = '✅ 10초 정밀 해부 & 1:1 복제 프롬프트 로드 완료';
-      statusEl.style.color = 'var(--emerald)';
+      if (!hasExistingAnalysis) {
+        await runAutoAnalyzeOnCurrentVideo();
+      } else {
+        statusEl.textContent = '✅ 10초 정밀 해부 & 1:1 복제 프롬프트 로드 완료';
+        statusEl.style.color = 'var(--emerald)';
+      }
+    }
+
+    async function runAutoAnalyzeOnCurrentVideo() {
+      if (!state.baseName) return showToast('먼저 동영상을 업로드하거나 선택해 주세요.');
+      const statusEl = document.getElementById('uploadStatus');
+      statusEl.textContent = '🤖 AI가 실제 영상·대사·장면을 10초 단위로 자동 해부 중... (약 10~15초)';
+      statusEl.style.color = 'var(--cyan)';
+      showToast('🤖 Gemini 3.8 멀티모달 AI가 영상을 10초 단위로 자동 정밀 분석 중입니다...');
+
+      try {
+        const res = await fetch('/api/auto-analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            baseName: state.baseName,
+            filename: state.filename,
+            duration: state.duration,
+            width: state.width,
+            height: state.height,
+            aspectRatio: state.aspectRatio
+          })
+        });
+        const out = await res.json();
+        if (!out.ok || !out.data) throw new Error(out.error || 'AI 자동 분석 실패');
+
+        state.master = out.data.master || state.master;
+        syncMasterInputs();
+
+        // Preserve extracted keyframes & palettes while updating all analysis text & prompts
+        out.data.segments.forEach((aiSeg, idx) => {
+          if (state.segments[idx]) {
+            const oldKf = state.segments[idx].keyframes;
+            const oldPal = state.segments[idx].palette;
+            state.segments[idx] = {
+              ...state.segments[idx],
+              ...aiSeg,
+              keyframes: oldKf,
+              palette: oldPal
+            };
+          }
+        });
+
+        selectSegment(state.activeSegmentIdx);
+        renderSegmentList();
+        loadVideoLibrary(false);
+
+        statusEl.textContent = '✅ AI 10초 단위 자동 정밀 해부 & 프롬프트 생성 완료!';
+        statusEl.style.color = 'var(--emerald)';
+        showToast('✨ 전 구간(10초 단위) AI 정밀 해부 및 1:1 복제 프롬프트 생성이 완료되었습니다!');
+      } catch (err) {
+        statusEl.textContent = '⚠️ 자동 분석 오류: ' + err.message;
+        statusEl.style.color = 'var(--rose)';
+        showToast('AI 분석 오류: ' + err.message);
+      }
     }
 
     function seekVideoTo(timeSec) {
