@@ -81,12 +81,16 @@ function generateMarkdownFromReport(report) {
   lines.push(`- **국가별 광고 레퍼런스 문법**: ${(report.master && report.master.countryStyle) || '-'}`);
   lines.push(`- **마스터 캐릭터 일관성 시드 (Character Seed)**: \`${(report.master && report.master.characterSeed) || '-'}\``);
   lines.push(`- **마스터 배경/스타일 시드 (Brand/Style Seed)**: \`${(report.master && report.master.brandSeed) || '-'}\``);
+  lines.push(`- **전체 기승전결 스토리 & 대본 연속성 아크 (Story Arc)**: ${(report.master && report.master.storyArc) || '-'}`);
   lines.push('');
   lines.push(`---`);
   lines.push('');
 
   (report.segments || []).forEach((seg, idx) => {
     lines.push(`## ⏱️ [Section ${String(idx + 1).padStart(2, '0')}] \`${seg.label}\` — ${seg.subtitle || ''}`);
+    lines.push('');
+    lines.push(`### 🔗 0. 10초 내 3프레임(Start ➔ Mid ➔ End) & 구간 간 스토리·장면 브릿지 흐름`);
+    lines.push(seg.frameFlow || '-');
     lines.push('');
     lines.push(`### 1. 구도 (Composition & Camera Work)`);
     lines.push(seg.composition || '-');
@@ -176,18 +180,19 @@ async function analyzeVideoWithGemini(payload) {
   }
 
   const systemPrompt = `당신은 태국, 일본, 미국, 한국의 수많은 유명 대표 광고 및 바이럴 영상을 연구한 수석 광고 영상 편집자이자 1:1 AI 영상 복제 프롬프트 디렉터입니다.
-첨부된 동영상을 처음부터 끝까지 시청하고, 아래에 지정된 ${segCount}개의 10초 단위 구간(${segRanges.map(s => s.label).join(', ')})별로 실제 영상에 등장하는 내용만 100% 정확하게 분석하여 순수 JSON 형식으로 응답하세요.
+첨부된 동영상을 처음부터 끝까지 시청하고, 아래에 지정된 ${segCount}개의 10초 단위 구간(${segRanges.map(s => s.label).join(', ')})이 각각 따로 놀지 않고 **하나의 완벽하게 이어지는 30초(또는 전체 길이) 연속 스토리·동일 인물·동일 화풍·동일 대본 흐름**을 유지하도록 순수 JSON 형식으로 응답하세요.
 
-[절대 원칙]
-1. 영상에 없는 가상의 내용(예: 정장 입은 한국 남성 모델 등)을 절대 지어내지 말고, 실제 영상 속 캐릭터/인물의 생김새, 머리 스타일, 수염, 옷차림, 배경, 소품, 대사/내레이션, 자막, 효과음을 있는 그대로 초정밀 묘사하세요.
-2. videoPrompt 와 imagePrompt 는 사용자가 Gemini(Veo), Kling, Sora, Runway, Midjourney에 그대로 복사해 붙여넣었을 때 100% 똑같은 영상이 생성되도록 메타 제목('[AI Prompt]' 등) 없이 오직 구체적인 영문 시각·모션 묘사로만 작성하세요.
+[절대 원칙 — 전 구간 & 3프레임 연속성(Continuity Lock)]
+1. 각 10초 구간의 3프레임(Start 0초 ➔ Mid 5초 ➔ End 9초)과 다음 10초 구간(10~20초, 20~30초...)이 전혀 다른 영상으로 쪼개지지 않도록, **이전 구간 마지막 장면(End Frame)과 대사가 다음 구간 시작 장면(Start Frame)과 대사로 끊김 없이 이어지는 브릿지(Bridge Hand-off) 구조**로 설계하세요.
+2. 각 구간의 videoPrompt 마다 반드시 마스터 캐릭터 외형(얼굴·체형·헤어·수염·의상)과 전체 화풍·카메라 시점(Style & Character Lock)을 매번 완전한 영문 문장으로 반복 포함시켜, AI 영상 생성기에서 10초씩 따로 생성해 이어 붙여도 100% 동일한 인물·배경·연출·스토리가 이어지게 작성하세요.
 3. 응답은 마크다운 코드블록 없이 아래 JSON 스키마만 정확히 출력하세요:
 
 {
   "master": {
     "countryStyle": "한국어로 이 영상의 국가별 광고/바이럴 레퍼런스 문법 정의",
-    "characterSeed": "영문으로 영상 속 주요 인물/캐릭터의 고정 외형·의상·특징 상세 묘사",
-    "brandSeed": "영문으로 영상의 전체 화풍(실사/2D애니/3D 등), 카메라 시점, 조명, 화면비율(${payload.aspectRatio || '9:16'}) 묘사"
+    "characterSeed": "영문으로 전 구간에 동일하게 등장하는 인물/캐릭터의 고정 외형·체형·헤어·의상·특징 상세 묘사 (Character Continuity Lock)",
+    "brandSeed": "영문으로 전 구간에 동일하게 유지되는 화풍(실사/2D애니/3D 등), 카메라 시점(POV 등), 조명, 화면비율(${payload.aspectRatio || '9:16'}) 묘사 (Style & Camera Lock)",
+    "storyArc": "한국어로 전체 영상(0초~끝)의 기·승·전·결 통합 스토리 흐름 및 대본이 10초 구간마다 어떻게 한 호흡으로 이어지는지 요약"
   },
   "segments": [
     {
@@ -195,15 +200,16 @@ async function analyzeVideoWithGemini(payload) {
       "startTime": 0,
       "endTime": 10,
       "label": "00:00 ~ 00:10",
-      "subtitle": "이 10초 구간의 핵심 장면 요약 소제목 (한국어)",
-      "composition": "1. 구도: 세부 타임스탬프별 샷 사이즈(CU/MS/WS), 앵글, 카메라 무브먼트(Zoom/Pan/Tilt/POV), 화면 분할/프레임 연출 (한국어 상세 분석)",
-      "dialogue": "2. 대사 · 자막 · 사운드: 실제 음성 대사/내레이션 원문 및 한국어 번역, 화면 자막 문구와 스타일, 효과음(SFX) 및 BGM 상세 분석 (한국어)",
-      "narrative": "3. 내용 · 광고 심리학 & 글로벌 레퍼런스: 이 10초 구간의 스토리 전개 및 시청자 시선을 잡는 광고 심리학/레퍼런스 기법 해설 (한국어)",
-      "scene": "4. 장면 · 미장센 · 조명 · 컷 편집: 실제 배경 장소, 소품, 인물 표정과 연기 동작, 조명 색감, 컷 전환 방식 상세 묘사 (한국어)",
-      "videoPrompt": "Pure English video generation prompt for Gemini Veo / Kling / Sora / Runway describing the exact visual style, characters, clothing, background, camera movement, and chronological action in this 10-second segment (${payload.aspectRatio || '9:16'} format).",
-      "imagePrompt": "Pure English first-frame image generation prompt for Midjourney / Flux describing the exact opening frame of this 10-second segment in rich visual detail --ar ${payload.aspectRatio || '9:16'} --v 6.1",
-      "audioPrompt": "Pure English audio prompt describing the exact voiceover tone, sound effects (SFX), and background music in this 10-second segment.",
-      "negativePrompt": "Pure English negative prompt to prevent style drift or unwanted artifacts."
+      "subtitle": "[기/승/전/결] 이 10초 구간의 핵심 장면 요약 소제목 (한국어)",
+      "frameFlow": "• [Start 프레임 (0s) ◀ 이전 구간 연결]: 시작 장면 묘사\\n• [Mid 프레임 (5s) 전개]: 중간 동작·연출 전개\\n• [End 프레임 (9s) ➔ 다음 구간 브릿지]: 이 구간이 어떻게 끝나며 다음 10초 구간 첫 프레임과 어떻게 직결되는지 상세 설명",
+      "composition": "1. 구도: 전 구간 카메라 시점 고정(Camera Lock) 및 10초 내 Start(0~3s) ➔ Mid(3~7s) ➔ End(7~10s) 연속 카메라 워크 상세 분석 (한국어)",
+      "dialogue": "2. 대사 · 자막 · 사운드: 이전 구간에서 이어지고 다음 구간으로 연결되는 연속 대사/내레이션 원문 및 한국어 번역, 화면 자막, 연속 효과음(SFX) 및 BGM 상세 분석 (한국어)",
+      "narrative": "3. 내용 · 광고 심리학 & 글로벌 레퍼런스: 전체 스토리 아크 속 이 구간의 역할 및 시청자 몰입을 유지하는 연출 기법 해설 (한국어)",
+      "scene": "4. 장면 · 미장센 · 조명 · 컷 편집: 전 구간 동일하게 유지되는 캐릭터/배경 디테일과 이 구간에서의 상태 변화 상세 묘사 (한국어)",
+      "videoPrompt": "[PART N OF ${segCount} - SEAMLESS CONTINUATION]: Pure English continuity-locked video prompt for Gemini Veo / Kling / Sora / Runway. MUST explicitly repeat the full Character Lock (exact appearance & wardrobe) and Style/Camera Lock first, then describe the continuous chronological motion from [Start 0s-3s (continuing from previous segment's end)] -> [Mid 3s-7s] -> [End 7s-10s Bridge to next segment] in ${payload.aspectRatio || '9:16'} format.",
+      "imagePrompt": "Pure English first-frame image generation prompt for Midjourney / Flux matching the exact Character Lock and Style Lock at the start of this 10-second segment --ar ${payload.aspectRatio || '9:16'} --v 6.1",
+      "audioPrompt": "Pure English continuous audio prompt describing the exact voiceover script continuation, sound effects (SFX), and background music.",
+      "negativePrompt": "Pure English negative prompt preventing character changes, outfit changes, or style breaks."
     }
   ]
 }`;
@@ -259,6 +265,7 @@ async function analyzeVideoWithGemini(payload) {
       endTime: range.endTime,
       label: range.label,
       subtitle: aiSeg.subtitle || `${range.label} 구간 분석`,
+      frameFlow: aiSeg.frameFlow || '',
       composition: aiSeg.composition || '',
       dialogue: aiSeg.dialogue || '',
       narrative: aiSeg.narrative || '',

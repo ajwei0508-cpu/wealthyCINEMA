@@ -841,42 +841,49 @@
       <!-- AI Assistant Sync Banner -->
       <div class="ai-banner">
         <div class="ai-banner-text">
-          <h3>🎯 100% 동일한 영상 복제(Clone) 핵심 팁</h3>
+          <h3>🔗 30초/40초 전 구간 & 3프레임(Start ➔ Mid ➔ End) 스토리·인물·대본 연속성(Continuity Lock) 엔진</h3>
           <p>
-            Gemini(Veo) · Kling · Runway · Sora에서 <strong>똑같은 영상</strong>을 뽑으려면:<br>
-            ① 아래 <strong>[구간 시작 프레임 이미지 다운로드]</strong>를 눌러 첫 프레임 이미지를 AI 영상 생성기에 함께 첨부(Image-to-Video)하고,<br>
-            ② 초록색 <strong>[🎬 Gemini / Kling / Sora 영상 복제용 순수 프롬프트 복사]</strong> 버튼을 눌러 불필요한 헤더 없이 순수 영문 모션 프롬프트만 붙여넣으세요!
+            10초씩 나뉜 각 구간과 3프레임이 따로 놀지 않도록 <strong>[마스터 인물·화풍·시점 고정 시드(Lock)] + [이전 구간 마지막 프레임 ➔ 현재 구간 시작 ➔ 다음 구간 연결 브릿지]</strong>가 모든 10초 프롬프트에 자동 주입되었습니다!<br>
+            💡 <strong>이어지는 30초 영상 생성 팁</strong>: 1구간(`0~10초`) 생성 후, 2구간(`10~20초`) 생성 시 <strong>2구간의 첫 프레임 이미지([📥 프레임 저장])를 시작 이미지로 첨부</strong>하고 아래 <strong>[🎬 연속성 고정 프롬프트 복사]</strong>를 붙여넣으면 인물·의상·배경·스토리가 100% 한 편처럼 이어집니다!
           </p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="copy-veo" onclick="copyCleanVideoPrompt()">🎬 현재 구간 영상 복제용 순수 프롬프트 복사</button>
+          <button class="copy-veo" onclick="copyCleanVideoPrompt()">🎬 현재 10초 구간 연속성 고정 프롬프트 복사</button>
+          <button class="btn btn-gold" onclick="copyAllSegmentsContinuityPrompts()">🔗 전 구간(전체 스토리) 연속 프롬프트 일괄 복사</button>
         </div>
       </div>
 
       <!-- 0. Master Blueprint -->
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">📋 0. 전체 영상 마스터 블루프린트 & 캐릭터 일관성 시드 (Consistency Seed)</div>
+          <div class="panel-title">📋 0. 전체 영상 마스터 블루프린트 & 전 구간 일관성 고정 시드 (Master Continuity Bible)</div>
           <span style="font-size:12px; color:var(--gold);" id="currentVideoTitle">선택된 영상 없음</span>
         </div>
         <div class="blueprint-grid">
           <div class="field-group">
             <label class="field-label">국가별 광고 레퍼런스 스타일</label>
-            <input type="text" class="field-input" id="masterCountryStyle" placeholder="예: 🇺🇸 미국형 슈퍼볼/바이럴 CGI 슬랩스틱 훅" oninput="updateMasterField('countryStyle', this.value)" />
+            <input type="text" class="field-input" id="masterCountryStyle" placeholder="예: 🇺🇸 미국형 슈퍼볼/바이럴 CGI 원테이크 슬랩스틱" oninput="updateMasterField('countryStyle', this.value)" />
           </div>
           <div class="field-group">
             <label class="field-label">
-              <span>마스터 인물/캐릭터 고정 시드 (영문 외형 묘사)</span>
+              <span>👤 마스터 인물/캐릭터 고정 시드 (전 구간 동일 인물 Lock)</span>
               <button class="copy-mini" onclick="copyTextById('masterCharSeed')">복사</button>
             </label>
             <input type="text" class="field-input" id="masterCharSeed" placeholder="인물의 연령, 체형, 수염, 모자, 상·하의 의상, 신발 유무 등 정확한 영문 묘사" oninput="updateMasterField('characterSeed', this.value)" />
           </div>
           <div class="field-group">
             <label class="field-label">
-              <span>마스터 배경/차량/소품 고정 시드</span>
+              <span>🎥 마스터 배경/화풍/카메라 고정 시드 (전 구간 동일 배경 Lock)</span>
               <button class="copy-mini" onclick="copyTextById('masterBrandSeed')">복사</button>
             </label>
             <input type="text" class="field-input" id="masterBrandSeed" placeholder="카메라 시점(POV), 배경 장소, 주요 차량/제품 배치 등 고정 환경 묘사" oninput="updateMasterField('brandSeed', this.value)" />
+          </div>
+          <div class="field-group" style="grid-column: 1 / -1; margin-top: 4px;">
+            <label class="field-label">
+              <span style="color:var(--gold);">🔗 전체 영상(0초~끝) 기·승·전·결 통합 스토리 & 연속 대본 흐름 (Full Story & Script Arc)</span>
+              <button class="copy-mini" onclick="copyTextById('masterStoryArc')">복사</button>
+            </label>
+            <textarea class="field-textarea" id="masterStoryArc" style="min-height:66px;" placeholder="10초씩 나뉜 구간들이 처음부터 끝까지 어떻게 하나의 기·승·전·결 스토리와 대본으로 이어지는지 전체 흐름 요약" oninput="updateMasterField('storyArc', this.value)"></textarea>
           </div>
         </div>
       </div>
@@ -911,6 +918,18 @@
 
         <!-- 4 Core Analysis Pillars + 5th AI Prompt Pillar -->
         <div class="analysis-grid">
+          <!-- 0. 3프레임 & 구간 간 연속성 브릿지 (Full Width) -->
+          <div class="pillar-card full-width" style="border-color: rgba(56, 189, 248, 0.4); background: linear-gradient(180deg, rgba(56, 189, 248, 0.07) 0%, var(--bg-card) 100%);">
+            <div class="pillar-head">
+              <div class="pillar-num">
+                <span class="num-badge" style="background:var(--cyan); color:#090a0f;">🔗</span>
+                10초 내 3프레임([Start 0s] ➔ [Mid 5s] ➔ [End 9s]) 유기적 연결 & 다음 10초 구간 스토리 브릿지 (Frame & Story Continuity)
+              </div>
+              <span style="font-size:11px; color:var(--cyan);">이전 구간 ➔ 현재 3프레임 전개 ➔ 다음 구간 바통 터치</span>
+            </div>
+            <textarea class="field-textarea" id="fieldFrameFlow" style="min-height:84px;" oninput="updateSegField('frameFlow', this.value)"></textarea>
+          </div>
+
           <!-- 1. 구도 (Composition & Camera) -->
           <div class="pillar-card">
             <div class="pillar-head">
@@ -1430,6 +1449,7 @@
 
       document.getElementById('activeSegHeader').textContent = `[Section ${String(idx + 1).padStart(2, '0')}] ${seg.label}`;
       document.getElementById('segSubtitleInput').value = seg.subtitle || '';
+      document.getElementById('fieldFrameFlow').value = seg.frameFlow || '';
       document.getElementById('fieldComposition').value = seg.composition || '';
       document.getElementById('fieldDialogue').value = seg.dialogue || '';
       document.getElementById('fieldNarrative').value = seg.narrative || '';
@@ -1442,7 +1462,11 @@
       const stripEl = document.getElementById('activeKeyframesStrip');
       if (seg.keyframes && seg.keyframes.length > 0) {
         stripEl.innerHTML = seg.keyframes.map((kf, kIdx) => {
-          const roleNames = ['구간 시작 (Start)', '구간 중반 (Mid)', '구간 후반 (End)'];
+          const roleNames = [
+            '① 구간 시작 (Start · 이전 구간 직결)',
+            '② 구간 중반 전개 (Mid · 스토리 진행)',
+            '③ 구간 마감 (End · 다음 구간 브릿지)'
+          ];
           const fname = kf.name || `section${idx + 1}_frame${kIdx + 1}.jpg`;
           return `
             <div class="kf-card">
@@ -1469,6 +1493,16 @@
       document.getElementById('masterCountryStyle').value = state.master.countryStyle || '';
       document.getElementById('masterCharSeed').value = state.master.characterSeed || '';
       document.getElementById('masterBrandSeed').value = state.master.brandSeed || '';
+      document.getElementById('masterStoryArc').value = state.master.storyArc || '';
+    }
+
+    function copyAllSegmentsContinuityPrompts() {
+      if (!state.segments.length) return showToast('먼저 동영상을 선택해 주세요.');
+      const blocks = state.segments.map((s, idx) =>
+        `=== [Segment ${idx + 1}: ${s.label} — ${s.subtitle}] ===\n${(s.videoPrompt || '').trim()}`
+      );
+      navigator.clipboard.writeText(blocks.join('\n\n'));
+      showToast('🔗 전 구간(처음~끝) 연속성 고정 비디오 프롬프트가 모두 복사되었습니다!');
     }
 
     function updateSegField(key, val) {
