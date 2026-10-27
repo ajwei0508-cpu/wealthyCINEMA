@@ -532,6 +532,68 @@
       border-color: var(--gold);
     }
 
+    /* Live Prompt Auto-Sync UI Components */
+    .sync-control-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: rgba(15, 17, 26, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 10px;
+      padding: 6px 12px;
+    }
+
+    .sync-toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #bae6fd;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .sync-toggle-label input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
+
+    .sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      transition: all 0.2s;
+    }
+
+    .sync-badge.syncing {
+      background: rgba(229, 193, 88, 0.18);
+      border-color: var(--gold);
+      color: var(--gold);
+      animation: pulse-sync 1.2s infinite ease-in-out;
+    }
+
+    .sync-badge.synced {
+      background: rgba(52, 211, 153, 0.18);
+      border-color: var(--emerald);
+      color: var(--emerald);
+    }
+
+    @keyframes pulse-sync {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(0.97); }
+    }
+
     /* Active 10s Segment Keyframes & Color Strip */
     .keyframes-strip {
       display: grid;
@@ -890,13 +952,23 @@
 
       <!-- Active 10-Second Segment Deep Dive -->
       <div class="panel">
-        <div class="panel-header">
+        <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
           <div class="panel-title">
             <span id="activeSegHeader" style="color:var(--gold); font-family:'JetBrains Mono', monospace;">[Section 01] 00:00 ~ 00:10</span>
             <span>정밀 해부 워크시트</span>
           </div>
+
+          <div class="sync-control-bar">
+            <label class="sync-toggle-label">
+              <input type="checkbox" id="autoSyncCheckbox" checked onchange="toggleAutoSync(this.checked)" />
+              <span>⚡ 한글 수정 시 AI 프롬프트 자동 실시간 반영</span>
+            </label>
+            <span class="sync-badge" id="syncStatusBadge">🟢 실시간 자동 연동 대기중</span>
+            <button class="copy-mini" style="background:rgba(56,189,248,0.18); border-color:#38bdf8; color:#bae6fd;" onclick="syncActiveSegmentPromptsNow()">🔄 프롬프트 즉시 재동기화</button>
+          </div>
+
           <div style="display:flex; gap:8px; align-items:center;">
-            <input type="text" class="field-input" id="segSubtitleInput" style="width:360px; padding:6px 10px; font-size:12px;" placeholder="이 10초 구간의 핵심 소제목" oninput="updateSegField('subtitle', this.value)" />
+            <input type="text" class="field-input" id="segSubtitleInput" style="width:320px; padding:6px 10px; font-size:12px;" placeholder="이 10초 구간의 핵심 소제목" oninput="updateSegField('subtitle', this.value)" />
           </div>
         </div>
 
@@ -916,7 +988,7 @@
           </div>
         </div>
 
-        <!-- 4 Core Analysis Pillars + 5th AI Prompt Pillar -->
+        <!-- 5 Core Analysis Pillars (Ordered: 1.인물 -> 2.대사 -> 3.구도 -> 4.내용 -> 5.장면) + 6th AI Prompt Pillar -->
         <div class="analysis-grid">
           <!-- 0. 3프레임 & 구간 간 연속성 브릿지 (Full Width) -->
           <div class="pillar-card full-width" style="border-color: rgba(56, 189, 248, 0.4); background: linear-gradient(180deg, rgba(56, 189, 248, 0.07) 0%, var(--bg-card) 100%);">
@@ -927,62 +999,72 @@
               </div>
               <span style="font-size:11px; color:var(--cyan);">이전 구간 ➔ 현재 3프레임 전개 ➔ 다음 구간 바통 터치</span>
             </div>
-            <textarea class="field-textarea" id="fieldFrameFlow" style="min-height:84px;" oninput="updateSegField('frameFlow', this.value)"></textarea>
+            <textarea class="field-textarea" id="fieldFrameFlow" style="min-height:84px;" placeholder="• [Start 0s ◀ 이전 구간 연결]: 시작 프레임 묘사&#10;• [Mid 5s 전개]: 중반 동작 전개&#10;• [End 9s ➔ 다음 구간 브릿지]: 다음 10초 구간 첫 프레임과 직결되는 연결 장면" oninput="handleKoreanFieldChange('frameFlow', this.value)"></textarea>
           </div>
 
-          <!-- 1. 구도 (Composition & Camera) -->
-          <div class="pillar-card">
+          <!-- 1. 인물 (Character, Appearance, Wardrobe & Performance) -->
+          <div class="pillar-card" style="border-color: rgba(229, 193, 88, 0.35);">
             <div class="pillar-head">
-              <div class="pillar-num"><span class="num-badge">1</span> 구도 (Composition & Camera Work)</div>
-              <span style="font-size:11px; color:var(--text-sub);">샷 사이즈 · 앵글 · 무브먼트 · 렌즈</span>
+              <div class="pillar-num"><span class="num-badge" style="background:var(--gold); color:#090a0f;">1</span> 인물 (Character & Wardrobe)</div>
+              <span style="font-size:11px; color:var(--gold);">성별 · 연령 · 이목구비 · 의상 · 소품 · 제스처</span>
             </div>
-            <textarea class="field-textarea" id="fieldComposition" oninput="updateSegField('composition', this.value)"></textarea>
+            <textarea class="field-textarea" id="fieldCharacter" style="min-height:115px;" placeholder="등장인물의 연령대, 얼굴 이목구비, 표정 변화, 헤어스타일, 상·하의 의상(색상/재질/스타일), 착용 소품, 시간대별 동작 및 감정 연기 상세 분석" oninput="handleKoreanFieldChange('character', this.value)"></textarea>
           </div>
 
-          <!-- 2. 대사 (Dialogue, VO, Subtitle & Audio) -->
+          <!-- 2. 대사 · 자막 · 사운드 (Dialogue, Subtitle & Audio) -->
           <div class="pillar-card">
             <div class="pillar-head">
               <div class="pillar-num"><span class="num-badge">2</span> 대사 · 자막 · 사운드 (Dialogue & Audio)</div>
-              <span style="font-size:11px; color:var(--text-sub);">내레이션 · 모션자막 · BGM · SFX</span>
+              <span style="font-size:11px; color:var(--text-sub);">실제 발화 음성 · 내레이션 · 자막 · SFX · BGM</span>
             </div>
-            <textarea class="field-textarea" id="fieldDialogue" oninput="updateSegField('dialogue', this.value)"></textarea>
+            <textarea class="field-textarea" id="fieldDialogue" style="min-height:115px;" placeholder="실제 발화 음성 대사(원문 및 한국어 번역), 성우 내레이션, 화면에 등장하는 텍스트/모션 자막, 배경음악(BGM) 템포, 10초 내 효과음(SFX) 타이밍" oninput="handleKoreanFieldChange('dialogue', this.value)"></textarea>
           </div>
 
-          <!-- 3. 내용 (Narrative & Global Ad Psychology) -->
+          <!-- 3. 구도 (Composition, Camera Work & Angles) -->
           <div class="pillar-card">
             <div class="pillar-head">
-              <div class="pillar-num"><span class="num-badge">3</span> 내용 · 광고 심리학 & 글로벌 레퍼런스</div>
-              <span style="font-size:11px; color:var(--text-sub);">태국·일본·미국·한국 광고 공식</span>
+              <div class="pillar-num"><span class="num-badge">3</span> 구도 (Composition & Camera Work)</div>
+              <span style="font-size:11px; color:var(--text-sub);">샷 사이즈 · 앵글 · 렌즈 mm · 카메라 무브먼트</span>
             </div>
-            <textarea class="field-textarea" id="fieldNarrative" oninput="updateSegField('narrative', this.value)"></textarea>
+            <textarea class="field-textarea" id="fieldComposition" style="min-height:115px;" placeholder="카메라 샷 사이즈(클로즈업/바스트/풀샷), 앵글(아이레벨/로우/하이), 렌즈 화각(mm), 카메라 무브먼트(달리/패닝/트래킹 등)의 시간대별 동선 분석" oninput="handleKoreanFieldChange('composition', this.value)"></textarea>
           </div>
 
-          <!-- 4. 장면 (Scene, Mise-en-scène, Lighting & Editing) -->
+          <!-- 4. 내용 · 스토리 타임라인 & 광고 심리학 (Narrative & Ad Psychology) -->
           <div class="pillar-card">
             <div class="pillar-head">
-              <div class="pillar-num"><span class="num-badge">4</span> 장면 · 미장센 · 조명 · 컷 편집 (Scene)</div>
-              <span style="font-size:11px; color:var(--text-sub);">배경 · 인물연기 · 색보정 · 트랜지션</span>
+              <div class="pillar-num"><span class="num-badge">4</span> 내용 · 스토리 타임라인 & 광고 심리학</div>
+              <span style="font-size:11px; color:var(--text-sub);">10초 기승전결 타임라인 · 인과관계 · 광고 후킹</span>
             </div>
-            <textarea class="field-textarea" id="fieldScene" oninput="updateSegField('scene', this.value)"></textarea>
+            <textarea class="field-textarea" id="fieldNarrative" style="min-height:115px;" placeholder="10초 내 기승전결 타임라인 전개(Start 0~3s -> Mid 3~7s -> End 7~10s), 인과관계, 핵심 사건, 시청자 몰입을 유도하는 광고 심리학적 소구점" oninput="handleKoreanFieldChange('narrative', this.value)"></textarea>
           </div>
 
-          <!-- 5. 100% 복제용 AI 프롬프트 패키지 (Full Width) -->
+          <!-- 5. 장면 · 미장센 · 조명 · 컷 편집 (Scene, Mise-en-scène & Lighting) (Full Width) -->
           <div class="pillar-card full-width">
             <div class="pillar-head">
+              <div class="pillar-num"><span class="num-badge">5</span> 장면 · 미장센 · 조명 · 컷 편집 (Scene & Mise-en-scène)</div>
+              <span style="font-size:11px; color:var(--text-sub);">배경 세트/소품 · 조명(키라이트/색온도) · 컬러 팔레트 · 트랜지션</span>
+            </div>
+            <textarea class="field-textarea" id="fieldScene" style="min-height:85px;" placeholder="배경 장소 및 세트, 소품 인터랙션, 조명 셋업(자연광/키라이트/색온도), 컬러 팔레트 톤앤매너, 컷 편집 및 전환 기법 상세 묘사" oninput="handleKoreanFieldChange('scene', this.value)"></textarea>
+          </div>
+
+          <!-- 6. 100% 동일 복제용 AI 마스터 프롬프트 패키지 (Full Width) -->
+          <div class="pillar-card full-width" style="border-color: rgba(52, 211, 153, 0.45); background: linear-gradient(180deg, rgba(52, 211, 153, 0.06) 0%, var(--bg-card) 100%);">
+            <div class="pillar-head">
               <div class="pillar-num">
-                <span class="num-badge" style="background:var(--gold); color:#090a0f;">5</span>
+                <span class="num-badge" style="background:var(--emerald); color:#06130e;">6</span>
                 🤖 100% 똑같은 영상 복제용 AI 마스터 프롬프트 패키지 (1:1 Video Cloning Prompts)
               </div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <span style="font-size:11px; color:#a7f3d0;">⚡ 한글 내용 변경 시 위 AI 프롬프트가 자동 실시간 갱신됩니다!</span>
                 <button class="copy-veo" onclick="copyCleanVideoPrompt()">🎬 Gemini(Veo)/Kling/Sora 영상 복제 프롬프트만 깔끔 복사</button>
                 <button class="copy-mini" onclick="copyCleanImagePrompt()">🖼️ 첫 프레임 이미지 생성 프롬프트만 깔끔 복사</button>
               </div>
             </div>
 
             <div class="clone-guide-box">
-              💡 <strong>왜 이전에 다른 영상(정장 입은 남성)이 나왔나요?</strong><br>
-              Gemini(Veo)나 영상 생성 AI에 여러 제목(`=== 1:1 AI CLONE PROMPTS ===` 등)이 섞인 전체 문서를 붙여넣으면 AI가 프롬프트 설명 영상으로 오해합니다.<br>
-              이제 <strong>실제 업로드하신 코카콜라 탱크로리 & 멘토스 트럭 폭발 영상</strong>을 프레임 단위로 정밀 해부한 <strong>순수 영문 프롬프트</strong>가 아래에 탑재되었습니다! 우측 상단의 초록색 <strong>[🎬 영상 복제 프롬프트만 깔끔 복사]</strong> 버튼을 눌러 바로 붙여넣으세요. (위 키프레임의 <strong>[📥 프레임 저장]</strong> 후 이미지를 함께 넣으면 100% 똑같이 복제됩니다!)
+              💡 <strong>[한글 내용 ➔ AI 프롬프트 실시간 자동 동기화 탑재]</strong><br>
+              위의 <strong>1.인물, 2.대사, 3.구도, 4.내용, 5.장면</strong>을 원하시는 대로 한글로 타이핑하여 수정하시면, 아래의 <strong>순수 영문 AI 비디오·이미지·오디오 프롬프트가 즉시 자동으로 재합성·동기화</strong>됩니다!<br>
+              생성된 영문 프롬프트는 우측 상단의 초록색 <strong>[🎬 영상 복제 프롬프트만 깔끔 복사]</strong> 버튼을 눌러 Gemini(Veo), Kling, Sora에 붙여넣기만 하시면 실제 영상과 100% 동일한 인물·대본·구도로 복제됩니다.
             </div>
 
             <div class="prompt-grid">
@@ -996,7 +1078,7 @@
 
               <div class="field-group">
                 <label class="field-label">
-                  <span>🖼️ [2] First Frame 이미지 생성 프롬프트 (Midjourney v6 / Flux / 나노바나나용)</span>
+                  <span>🖼️ [2] First Frame 이미지 생성 프롬프트 (Midjourney v6.1 / Flux / 나노바나나용)</span>
                   <button class="copy-mini" onclick="copyCleanImagePrompt()">🖼️ 순수 프롬프트 복사</button>
                 </label>
                 <textarea class="field-textarea mono" id="fieldImagePrompt" oninput="updateSegField('imagePrompt', this.value)"></textarea>
@@ -1019,6 +1101,8 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
         </div>
       </div>
     </section>
@@ -1221,14 +1305,16 @@
             keyframes: [],
             palette: [],
             lightingTone: '',
-            composition: '🤖 AI가 실제 영상 프레임과 오디오를 10초 단위로 정밀 해부하고 있습니다 (약 10~15초 소요)...',
-            dialogue: '🤖 AI가 실제 대사·내레이션·자막·효과음을 추출하고 있습니다...',
-            narrative: '🤖 AI가 스토리 전개 및 글로벌 광고 심리학 레퍼런스를 분석하고 있습니다...',
-            scene: '🤖 AI가 배경·인물 외형·조명·컷 전환 미장센을 해부하고 있습니다...',
+            frameFlow: '• [Start 0s ◀ 이전 구간 연결]: 분석 준비 중...\n• [Mid 5s 전개]: 분석 준비 중...\n• [End 9s ➔ 다음 구간 브릿지]: 분석 준비 중...',
+            character: '🤖 AI가 등장인물의 성별, 연령, 이목구비/표정, 헤어, 의상(상/하의/소품), 동작을 해부하고 있습니다...',
+            dialogue: '🤖 AI가 실제 발화 음성 대사·내레이션·자막·효과음을 추출하고 있습니다...',
+            composition: '🤖 AI가 실제 카메라 샷 사이즈·앵글·렌즈 mm·무브먼트를 정밀 해부하고 있습니다...',
+            narrative: '🤖 AI가 10초 타임라인 스토리 전개 및 글로벌 광고 심리학 레퍼런스를 분석하고 있습니다...',
+            scene: '🤖 AI가 배경 세트·소품·조명·컬러 톤·컷 전환 미장센을 해부하고 있습니다...',
             imagePrompt: 'Generating 1:1 First-Frame Image Prompt from actual video frames...',
             videoPrompt: 'Generating 1:1 Video Motion Clone Prompt from actual video and audio...',
             audioPrompt: 'Generating Audio/VO/SFX Prompt...',
-            negativePrompt: 'morphing face, extra fingers, deformed hands, blurry focal point, bad anatomy, watermark'
+            negativePrompt: 'morphing face, extra limbs, inconsistent clothing, blurry focal point, watermark, bad anatomy, deformed fingers'
           });
         }
       }
@@ -1450,8 +1536,9 @@
       document.getElementById('activeSegHeader').textContent = `[Section ${String(idx + 1).padStart(2, '0')}] ${seg.label}`;
       document.getElementById('segSubtitleInput').value = seg.subtitle || '';
       document.getElementById('fieldFrameFlow').value = seg.frameFlow || '';
-      document.getElementById('fieldComposition').value = seg.composition || '';
+      document.getElementById('fieldCharacter').value = seg.character || '';
       document.getElementById('fieldDialogue').value = seg.dialogue || '';
+      document.getElementById('fieldComposition').value = seg.composition || '';
       document.getElementById('fieldNarrative').value = seg.narrative || '';
       document.getElementById('fieldScene').value = seg.scene || '';
       document.getElementById('fieldImagePrompt').value = seg.imagePrompt || '';
@@ -1505,11 +1592,116 @@
       showToast('🔗 전 구간(처음~끝) 연속성 고정 비디오 프롬프트가 모두 복사되었습니다!');
     }
 
+    let promptSyncTimer = null;
+    let autoSaveTimer = null;
+    let autoSyncEnabled = true;
+
+    function toggleAutoSync(val) {
+      autoSyncEnabled = !!val;
+      const badge = document.getElementById('syncStatusBadge');
+      if (autoSyncEnabled) {
+        badge.textContent = '🟢 실시간 자동 연동 대기중';
+        badge.className = 'sync-badge';
+        showToast('⚡ 한글 수정 시 AI 프롬프트 자동 실시간 반영이 활성화되었습니다.');
+      } else {
+        badge.textContent = '⏸️ 실시간 연동 일시정지';
+        badge.className = 'sync-badge';
+        showToast('실시간 자동 반영이 꺼졌습니다. 필요 시 [프롬프트 즉시 재동기화] 버튼을 누르세요.');
+      }
+    }
+
     function updateSegField(key, val) {
       const seg = state.segments[state.activeSegmentIdx];
       if (!seg) return;
       seg[key] = val;
       if (key === 'subtitle') renderSegmentList();
+    }
+
+    // Triggered whenever Korean fields (1.인물, 2.대사, 3.구도, 4.내용, 5.장면, frameFlow) are typed
+    function handleKoreanFieldChange(key, val) {
+      updateSegField(key, val);
+
+      if (!autoSyncEnabled) return;
+
+      const badge = document.getElementById('syncStatusBadge');
+      badge.textContent = '⏳ AI 프롬프트 자동 동기화 대기중...';
+      badge.className = 'sync-badge syncing';
+
+      if (promptSyncTimer) clearTimeout(promptSyncTimer);
+      promptSyncTimer = setTimeout(() => {
+        syncActiveSegmentPromptsNow(true);
+      }, 1200);
+    }
+
+    async function syncActiveSegmentPromptsNow(isDebounced = false) {
+      const seg = state.segments[state.activeSegmentIdx];
+      if (!seg) return;
+
+      const badge = document.getElementById('syncStatusBadge');
+      badge.textContent = '⚡ AI 모델로 영문 프롬프트 재합성 중...';
+      badge.className = 'sync-badge syncing';
+
+      try {
+        const res = await fetch('/api/sync-prompts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            segment: {
+              index: seg.index,
+              label: seg.label,
+              subtitle: seg.subtitle,
+              frameFlow: seg.frameFlow,
+              character: seg.character,
+              dialogue: seg.dialogue,
+              composition: seg.composition,
+              narrative: seg.narrative,
+              scene: seg.scene
+            },
+            master: state.master,
+            aspectRatio: state.aspectRatio,
+            segmentIndex: state.activeSegmentIdx,
+            totalSegments: state.segments.length
+          })
+        });
+
+        const data = await res.json();
+        if (data.ok && data.prompts) {
+          seg.videoPrompt = data.prompts.videoPrompt || seg.videoPrompt;
+          seg.imagePrompt = data.prompts.imagePrompt || seg.imagePrompt;
+          seg.audioPrompt = data.prompts.audioPrompt || seg.audioPrompt;
+          seg.negativePrompt = data.prompts.negativePrompt || seg.negativePrompt;
+
+          document.getElementById('fieldVideoPrompt').value = seg.videoPrompt;
+          document.getElementById('fieldImagePrompt').value = seg.imagePrompt;
+          document.getElementById('fieldAudioPrompt').value = seg.audioPrompt;
+          document.getElementById('fieldNegativePrompt').value = seg.negativePrompt;
+
+          badge.textContent = '✨ AI 프롬프트 반영 완료';
+          badge.className = 'sync-badge synced';
+
+          showToast('✨ 한글 수정 내용이 AI 비디오/이미지/오디오 프롬프트에 자동 반영되었습니다!');
+
+          // Debounced save to server
+          if (autoSaveTimer) clearTimeout(autoSaveTimer);
+          autoSaveTimer = setTimeout(() => {
+            saveAllToServer(true);
+          }, 800);
+
+          setTimeout(() => {
+            if (autoSyncEnabled) {
+              badge.textContent = '🟢 실시간 자동 연동 대기중';
+              badge.className = 'sync-badge';
+            }
+          }, 3500);
+        } else {
+          throw new Error((data && data.error) || '프롬프트 동기화 실패');
+        }
+      } catch (err) {
+        console.error('Prompt sync error:', err);
+        badge.textContent = '⚠️ 동기화 실패';
+        badge.className = 'sync-badge';
+        if (!isDebounced) showToast('프롬프트 동기화 오류: ' + err.message);
+      }
     }
 
     function copyCleanVideoPrompt() {
@@ -1534,14 +1726,14 @@
 
     function copyChatCommand() {
       const target = state.filename ? `"${state.filename}"` : '방금 올린';
-      const cmd = `4번 실행해줘. wealthyCINEMA/videos/ 에 업로드한 ${target} 영상을 10초 단위로 실제 장면을 보고 1.구도 2.대사 3.내용 4.장면 5.100% 복제용 AI 프롬프트까지 초정밀 분석해서 리포트로 저장해줘!`;
+      const cmd = `4번 실행해줘. wealthyCINEMA/videos/ 에 업로드한 ${target} 영상을 10초 단위로 실제 장면을 보고 1.인물 2.대사 3.구도 4.내용 5.장면 6.100% 복제용 AI 프롬프트까지 초정밀 분석해서 리포트로 저장해줘!`;
       navigator.clipboard.writeText(cmd);
       showToast('채팅창 명령어가 복사되었습니다! 채팅창에 붙여넣기(Ctrl+V) 하세요.');
     }
 
     function generateFullMarkdown() {
       const lines = [];
-      lines.push(`# 🎬 [광고 영상 10초 단위 정밀 해부 & 1:1 AI 복제 리포트] ${state.filename || 'Untitled'}`);
+      lines.push(`# 🎬 [광고/바이럴 영상 10초 단위 정밀 해부 & 1:1 AI 복제 리포트] \`${state.filename || 'Untitled'}\``);
       lines.push('');
       lines.push(`## 📋 0. 마스터 블루프린트 (Master Blueprint)`);
       lines.push(`- **원본 파일명**: \`${state.filename}\``);
@@ -1549,7 +1741,8 @@
       lines.push(`- **10초 분할 구간 수**: 총 \`${state.segments.length}\`개 구간`);
       lines.push(`- **국가별 광고 레퍼런스 문법**: ${state.master.countryStyle}`);
       lines.push(`- **마스터 캐릭터 일관성 시드 (Character Seed)**: \`${state.master.characterSeed || '-'}\``);
-      lines.push(`- **마스터 배경/차량 시드 (Environment Seed)**: \`${state.master.brandSeed || '-'}\``);
+      lines.push(`- **마스터 배경/스타일 시드 (Brand/Style Seed)**: \`${state.master.brandSeed || '-'}\``);
+      lines.push(`- **전체 기승전결 스토리 & 대본 연속성 아크 (Story Arc)**: ${state.master.storyArc || '-'}`);
       lines.push('');
       lines.push(`---`);
       lines.push('');
@@ -1557,19 +1750,25 @@
       state.segments.forEach((seg, idx) => {
         lines.push(`## ⏱️ [Section ${String(idx + 1).padStart(2, '0')}] \`${seg.label}\` — ${seg.subtitle || ''}`);
         lines.push('');
-        lines.push(`### 1. 구도 (Composition & Camera Work)`);
-        lines.push(seg.composition || '-');
+        lines.push(`### 🔗 0. 10초 내 3프레임(Start ➔ Mid ➔ End) & 구간 간 스토리 브릿지 흐름`);
+        lines.push(seg.frameFlow || '-');
+        lines.push('');
+        lines.push(`### 1. 인물 (Character, Appearance, Wardrobe & Performance)`);
+        lines.push(seg.character || '-');
         lines.push('');
         lines.push(`### 2. 대사 · 자막 · 사운드 (Dialogue, Subtitle & Audio)`);
         lines.push(seg.dialogue || '-');
         lines.push('');
-        lines.push(`### 3. 내용 · 광고 심리학 & 글로벌 레퍼런스 (Narrative & Ad Psychology)`);
+        lines.push(`### 3. 구도 (Composition, Camera Work & Angles)`);
+        lines.push(seg.composition || '-');
+        lines.push('');
+        lines.push(`### 4. 내용 · 스토리 타임라인 & 광고 심리학 (Narrative & Ad Psychology)`);
         lines.push(seg.narrative || '-');
         lines.push('');
-        lines.push(`### 4. 장면 · 미장센 · 조명 · 컷 편집 (Scene & Mise-en-scène)`);
+        lines.push(`### 5. 장면 · 미장센 · 조명 · 컷 편집 (Scene, Mise-en-scène & Lighting)`);
         lines.push(seg.scene || '-');
         lines.push('');
-        lines.push(`### 5. 🤖 100% 복제용 AI 프롬프트 패키지 (1:1 Video Cloning Prompts)`);
+        lines.push(`### 6. 🤖 100% 동일 복제용 AI 마스터 프롬프트 패키지 (1:1 Video Cloning Prompts)`);
         lines.push(`#### 🎥 [AI Video Motion Prompt (Gemini Veo / Kling / Sora / Runway)]`);
         lines.push('```text');
         lines.push(seg.videoPrompt || '');
@@ -1588,6 +1787,44 @@
         lines.push('```');
         lines.push('');
         lines.push('---');
+        lines.push('');
+      });
+
+      return lines.join('\n');
+    }
+
+    async function saveAllToServer(silent = false) {
+      if (!state.baseName) return;
+      const md = generateFullMarkdown();
+      const payload = {
+        baseName: state.baseName,
+        data: {
+          filename: state.filename,
+          baseName: state.baseName,
+          duration: state.duration,
+          width: state.width,
+          height: state.height,
+          aspectRatio: state.aspectRatio,
+          master: state.master,
+          segments: state.segments.map((s) => ({
+            ...s,
+            keyframes: (s.keyframes || []).map((k) => ({ name: k.name, time: k.time, palette: k.palette, lightingTone: k.lightingTone }))
+          }))
+        },
+        markdown: md
+      };
+
+      const res = await fetch('/api/save-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const out = await res.json();
+      if (out.ok && !silent) {
+        showToast(`서버 저장 완료! (reports/${state.baseName}.md)`);
+        loadVideoLibrary(false);
+      }
+    }
         lines.push('');
       });
 
