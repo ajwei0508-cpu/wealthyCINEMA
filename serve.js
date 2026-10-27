@@ -410,7 +410,8 @@ const server = http.createServer((req, res) => {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, X-File-Name'
+      'Access-Control-Allow-Headers': 'Content-Type, X-File-Name, Range',
+      'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
     });
     return res.end();
   }
@@ -455,9 +456,12 @@ const server = http.createServer((req, res) => {
   // 2. Upload video file
   if (req.method === 'POST' && pathname === '/api/upload') {
     try {
-      const rawName = req.headers['x-file-name']
-        ? decodeURIComponent(req.headers['x-file-name'])
-        : `ad_video_${Date.now()}.mp4`;
+      let rawName = req.headers['x-file-name'];
+      if (rawName) {
+        try { rawName = decodeURIComponent(rawName); } catch (e) { rawName = req.headers['x-file-name']; }
+      } else {
+        rawName = `ad_video_${Date.now()}.mp4`;
+      }
       const filename = sanitizeFileName(rawName);
       const savePath = path.join(VIDEOS_DIR, filename);
       const writeStream = fs.createWriteStream(savePath);
@@ -653,7 +657,10 @@ const server = http.createServer((req, res) => {
       'Content-Range': `bytes ${start}-${end}/${stat.size}`,
       'Accept-Ranges': 'bytes',
       'Content-Length': chunksize,
-      'Content-Type': contentType
+      'Content-Type': contentType,
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Range, Content-Type, X-File-Name',
+      'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
     });
     return file.pipe(res);
   }
@@ -661,7 +668,10 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, {
     'Content-Length': stat.size,
     'Content-Type': contentType,
-    'Cache-Control': 'no-cache'
+    'Cache-Control': 'no-cache',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Range, Content-Type, X-File-Name',
+    'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
   });
   fs.createReadStream(filePath).pipe(res);
 });
