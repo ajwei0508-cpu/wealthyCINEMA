@@ -1103,8 +1103,6 @@
           </div>
         </div>
       </div>
-        </div>
-      </div>
     </section>
   </main>
 
@@ -1235,19 +1233,15 @@
     async function handleVideoFile(file) {
       if (!file) return;
       const statusEl = document.getElementById('uploadStatus');
-      statusEl.textContent = '⚡ 영상 로딩 및 10초 타임라인 즉각 생성 중...';
+      statusEl.textContent = '⚡ 영상 업로드 및 10초 타임라인 생성 중...';
       statusEl.style.color = 'var(--gold)';
 
-      // 1. Instant local preview via Blob URL (0-second playback latency)
+      // 1. Create instant local Blob URL for 0ms playback & frame extraction
       const blobUrl = URL.createObjectURL(file);
       const originalName = file.name || `video_${Date.now()}.mp4`;
 
       try {
-        // Load the video locally first so the user can play and scrub immediately
-        await loadVideoFromUrl(blobUrl, originalName, false);
-
-        // 2. Upload to server in background
-        statusEl.textContent = '☁️ 서버 영구 보관함에 동영상 업로드 중...';
+        // 2. Upload file to server first so server has the file on disk for AI analysis
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
           headers: {
@@ -1259,22 +1253,14 @@
         const uploadData = await uploadRes.json();
         if (!uploadData.ok) throw new Error(uploadData.error || '서버 업로드 실패');
 
-        state.filename = uploadData.filename;
-        state.baseName = uploadData.filename.replace(/\.[^/.]+$/, '');
-        document.getElementById('currentVideoTitle').textContent = uploadData.filename;
-
-        // Switch to server URL seamlessly
-        videoPlayer.src = uploadData.url;
+        // 3. Load video using fast local blobUrl while associating with server filename
+        await loadVideoFromUrl(blobUrl, uploadData.filename, true);
         loadVideoLibrary(false);
-
-        statusEl.textContent = '✅ 영상 로드 & 서버 보관 완료! 10초 구간 분석을 시작합니다.';
-        statusEl.style.color = 'var(--emerald)';
-        showToast('🎬 동영상이 성공적으로 로드되었습니다!');
       } catch (err) {
         console.error('Upload / Load error:', err);
         statusEl.textContent = '⚠️ 상태: ' + err.message;
-        statusEl.style.color = 'var(--gold)';
-        showToast('영상 로드 알림: ' + err.message);
+        statusEl.style.color = 'var(--rose)';
+        showToast('영상 로드 오류: ' + err.message);
       }
     }
 
@@ -1309,10 +1295,10 @@
           resolve();
         };
         const onError = (e) => {
-          console.warn('Video load event error, continuing with fallback:', e);
+          console.warn('Video load event warning, continuing with fallback:', e);
           complete();
         };
-        const timer = setTimeout(complete, 4500); // 4.5s max wait
+        const timer = setTimeout(complete, 4500);
         videoPlayer.addEventListener('loadedmetadata', complete, { once: true });
         videoPlayer.addEventListener('canplay', complete, { once: true });
         videoPlayer.addEventListener('error', onError, { once: true });
@@ -1337,8 +1323,9 @@
       document.getElementById('metaAspect').textContent = ar;
       document.getElementById('metaSegCount').textContent = `${segCount}구간`;
 
-      // Load saved report from server if available
+      // Load saved report & saved keyframes from server if available
       let hasExistingAnalysis = false;
+      let existingServerFrames = [];
       try {
         const existingRes = await fetch(`/api/report/${encodeURIComponent(state.baseName)}`);
         const existingJson = await existingRes.json();
@@ -1347,6 +1334,9 @@
           state.segments = existingJson.data.segments;
           hasExistingAnalysis = true;
           syncMasterInputs();
+        }
+        if (existingJson.ok && existingJson.metadata && Array.isArray(existingJson.metadata.frames)) {
+          existingServerFrames = existingJson.metadata.frames;
         }
       } catch (e) {
         console.warn('Failed to load existing report:', e);
@@ -1380,94 +1370,167 @@
         }
       }
 
-      // Extract keyframes (Start +0.2s, Mid +5s, End +9s) for every 10-second segment
-      extractCanvas.width = Math.min(640, w);
-      extractCanvas.height = Math.round(extractCanvas.width * (h / w));
+      // If server already has extracted keyframes for this video, bind them immediately for instant loading!
+      if (existingServerFrames.length > 0 && !url.startsWith('blob:')) {
+        state.segments.forEach((seg, idx) => {
+          const matching = existingServerFrames
+            .filter((f) => f.segmentIndex === idx)
+            .map((f) => ({
+              name: f.name,
+              time: f.time,
+              dataUrl: f.url,
+              url: f.url,
+              palette: f.palette || ['#E5C158', '#38BDF8']
+            }));
+          if (matching.length > 0) {
+            seg.keyframes = matching;
+            seg.palette = matching[0].palette;
+          }
+        });
+      } else {
+        // Extract keyframes (Start +0.2s, Mid +5s, End +9s) for every 10-second segment
+        extractCanvas.width = Math.min(640, w);
+        extractCanvas.height = Math.round(extractCanvas.width * (h / w));
 
-      const allFramesForServer = [];
-      for (let i = 0; i < state.segments.length; i++) {
-        const seg = state.segments[i];
-        const span = Math.max(0.5, seg.endTime - seg.startTime);
-        const sampleTimes = [
-          Math.min(dur - 0.05, seg.startTime + 0.15),
-          Math.min(dur - 0.05, seg.startTime + span * 0.5),
-          Math.min(dur - 0.05, seg.startTime + span * 0.9)
-        ];
+        const allFramesForServer = [];
+        for (let i = 0; i < state.segments.length; i++) {
+          const seg = state.segments[i];
+          const span = Math.max(0.5, seg.endTime - seg.startTime);
+          const sampleTimes = [
+            Math.min(dur - 0.05, seg.startTime + 0.15),
+            Math.min(dur - 0.05, seg.startTime + span * 0.5),
+            Math.min(dur - 0.05, seg.startTime + span * 0.9)
+          ];
 
-        const segKeyframes = [];
-        for (let k = 0; k < sampleTimes.length; k++) {
-          const t = Math.max(0, sampleTimes[k]);
-          await seekVideoTo(t);
+          const segKeyframes = [];
+          for (let k = 0; k < sampleTimes.length; k++) {
+            const t = Math.max(0, sampleTimes[k]);
+            await seekVideoTo(t);
 
-          let dataUrl = '';
-          let analysis = { palette: ['#E5C158', '#38BDF8'], lightingTone: 'Daylight' };
+            let dataUrl = '';
+            let analysis = { palette: ['#E5C158', '#38BDF8'], lightingTone: 'Daylight' };
+            try {
+              ctx.drawImage(videoPlayer, 0, 0, extractCanvas.width, extractCanvas.height);
+              dataUrl = extractCanvas.toDataURL('image/jpeg', 0.85);
+              analysis = analyzeCanvasColors(ctx, extractCanvas.width, extractCanvas.height);
+            } catch (canvasErr) {
+              console.warn('Canvas export restriction:', canvasErr);
+            }
+
+            const frameName = `seg${String(i + 1).padStart(2, '0')}_cut${k + 1}_${Math.round(t)}s.jpg`;
+
+            if (dataUrl) {
+              segKeyframes.push({
+                name: frameName,
+                time: Number(t.toFixed(1)),
+                dataUrl,
+                palette: analysis.palette,
+                lightingTone: analysis.lightingTone
+              });
+
+              allFramesForServer.push({
+                name: frameName,
+                time: Number(t.toFixed(1)),
+                segmentIndex: i,
+                dataUrl,
+                palette: analysis.palette
+              });
+            }
+          }
+
+          if (segKeyframes.length > 0) {
+            seg.keyframes = segKeyframes;
+            if (!seg.palette || !seg.palette.length) {
+              seg.palette = segKeyframes[0].palette;
+            }
+          }
+        }
+
+        if (allFramesForServer.length > 0) {
           try {
-            ctx.drawImage(videoPlayer, 0, 0, extractCanvas.width, extractCanvas.height);
-            dataUrl = extractCanvas.toDataURL('image/jpeg', 0.85);
-            analysis = analyzeCanvasColors(ctx, extractCanvas.width, extractCanvas.height);
-          } catch (canvasErr) {
-            console.warn('Canvas export restriction:', canvasErr);
-          }
-
-          const frameName = `seg${String(i + 1).padStart(2, '0')}_cut${k + 1}_${Math.round(t)}s.jpg`;
-
-          if (dataUrl) {
-            segKeyframes.push({
-              name: frameName,
-              time: Number(t.toFixed(1)),
-              dataUrl,
-              palette: analysis.palette,
-              lightingTone: analysis.lightingTone
+            await fetch('/api/save-frames', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                baseName: state.baseName,
+                filename: state.filename,
+                duration: state.duration,
+                width: state.width,
+                height: state.height,
+                aspectRatio: state.aspectRatio,
+                segmentCount: state.segments.length,
+                frames: allFramesForServer
+              })
             });
-
-            allFramesForServer.push({
-              name: frameName,
-              time: Number(t.toFixed(1)),
-              segmentIndex: i,
-              dataUrl,
-              palette: analysis.palette
-            });
-          }
-        }
-
-        if (segKeyframes.length > 0) {
-          seg.keyframes = segKeyframes;
-          if (!seg.palette || !seg.palette.length) {
-            seg.palette = segKeyframes[0].palette;
+          } catch (e) {
+            console.warn('Save frames skipped:', e);
           }
         }
       }
 
-      if (allFramesForServer.length > 0) {
-        try {
-          await fetch('/api/save-frames', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              baseName: state.baseName,
-              filename: state.filename,
-              duration: state.duration,
-              width: state.width,
-              height: state.height,
-              aspectRatio: state.aspectRatio,
-              segmentCount: state.segments.length,
-              frames: allFramesForServer
-            })
-          });
-        } catch (e) {
-          console.warn('Save frames skipped:', e);
-        }
-      }
-
-      videoPlayer.currentTime = 0;
+      try { videoPlayer.currentTime = 0; } catch (e) {}
       selectSegment(0);
       renderSegmentList();
 
       if (!hasExistingAnalysis && shouldAutoAnalyzeIfNew) {
         await runAutoAnalyzeOnCurrentVideo();
       } else {
-        statusEl.textContent = '✅ 영상 로드 및 10초 타임라인 활성화 완료';
+        statusEl.textContent = '✅ 영상 로드 및 10초 정밀 해부 데이터 활성화 완료';
         statusEl.style.color = 'var(--emerald)';
+      }
+    }
+
+    async function runAutoAnalyzeOnCurrentVideo() {
+      if (!state.baseName) return showToast('먼저 동영상을 업로드하거나 선택해 주세요.');
+      const statusEl = document.getElementById('uploadStatus');
+      statusEl.textContent = '🤖 AI가 실제 영상(1.인물->2.대사->3.구도->4.내용->5.장면)을 10초 단위로 해부 중... (약 15초)';
+      statusEl.style.color = 'var(--cyan)';
+      showToast('🤖 Gemini 3.8 멀티모달 AI가 영상을 10초 단위로 정밀 해부 중입니다...');
+
+      try {
+        const res = await fetch('/api/auto-analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            baseName: state.baseName,
+            filename: state.filename,
+            duration: state.duration,
+            width: state.width,
+            height: state.height,
+            aspectRatio: state.aspectRatio
+          })
+        });
+        const out = await res.json();
+        if (!out.ok || !out.data) throw new Error(out.error || 'AI 자동 분석 실패');
+
+        state.master = out.data.master || state.master;
+        syncMasterInputs();
+
+        // Preserve extracted keyframes & palettes while updating all analysis text & prompts
+        out.data.segments.forEach((aiSeg, idx) => {
+          if (state.segments[idx]) {
+            const oldKf = state.segments[idx].keyframes;
+            const oldPal = state.segments[idx].palette;
+            state.segments[idx] = {
+              ...state.segments[idx],
+              ...aiSeg,
+              keyframes: oldKf,
+              palette: oldPal
+            };
+          }
+        });
+
+        selectSegment(state.activeSegmentIdx);
+        renderSegmentList();
+        loadVideoLibrary(false);
+
+        statusEl.textContent = '✅ AI 10초 단위 자동 정밀 해부 & 프롬프트 생성 완료!';
+        statusEl.style.color = 'var(--emerald)';
+        showToast('✨ 전 구간(10초 단위) AI 정밀 해부 및 1:1 복제 프롬프트 생성이 완료되었습니다!');
+      } catch (err) {
+        statusEl.textContent = '⚠️ 자동 분석 오류: ' + err.message;
+        statusEl.style.color = 'var(--rose)';
+        showToast('AI 분석 오류: ' + err.message);
       }
     }
 
@@ -1481,7 +1544,7 @@
           clearTimeout(timer);
           resolve();
         };
-        const timer = setTimeout(onFinish, 700); // 700ms timeout guard
+        const timer = setTimeout(onFinish, 700);
         videoPlayer.addEventListener('seeked', onFinish, { once: true });
         try {
           videoPlayer.currentTime = timeSec;
@@ -1537,7 +1600,7 @@
         item.className = 'segment-item' + (idx === state.activeSegmentIdx ? ' active' : '');
         item.onclick = () => selectSegment(idx);
 
-        const thumbSrc = (seg.keyframes && seg.keyframes[0]) ? seg.keyframes[0].dataUrl : '';
+        const thumbSrc = (seg.keyframes && seg.keyframes[0]) ? (seg.keyframes[0].dataUrl || seg.keyframes[0].url || '') : '';
         const swatchesHtml = (seg.palette || []).map((hex) => `<span class="seg-swatch" style="background:${hex}" title="${hex}"></span>`).join('');
 
         item.innerHTML = `
@@ -1589,12 +1652,13 @@
             '③ 구간 마감 (End · 다음 구간 브릿지)'
           ];
           const fname = kf.name || `section${idx + 1}_frame${kIdx + 1}.jpg`;
+          const imgSrc = kf.dataUrl || kf.url || '';
           return `
             <div class="kf-card">
-              <img src="${kf.dataUrl}" alt="kf-${kIdx}" onclick="videoPlayer.currentTime=${kf.time}" style="cursor:pointer;" title="클릭 시 ${kf.time}초로 이동" />
+              <img src="${imgSrc}" alt="kf-${kIdx}" onclick="videoPlayer.currentTime=${kf.time}" style="cursor:pointer;" title="클릭 시 ${kf.time}초로 이동" />
               <div class="kf-meta">
                 <span>${roleNames[kIdx] || 'Frame'} (${kf.time}s)</span>
-                <button class="copy-mini" style="padding:2px 7px; font-size:10.5px;" onclick="downloadDataUrl('${kf.dataUrl}', '${fname}')">📥 프레임 저장</button>
+                <button class="copy-mini" style="padding:2px 7px; font-size:10.5px;" onclick="downloadDataUrl('${imgSrc}', '${fname}')">📥 프레임 저장</button>
               </div>
             </div>
           `;
@@ -1602,7 +1666,7 @@
       }
 
       if (videoPlayer.readyState >= 1) {
-        videoPlayer.currentTime = seg.startTime;
+        try { videoPlayer.currentTime = seg.startTime; } catch (e) {}
       }
     }
 
@@ -1828,7 +1892,10 @@
     }
 
     async function saveAllToServer(silent = false) {
-      if (!state.baseName) return;
+      if (!state.baseName) {
+        if (!silent) showToast('먼저 동영상을 업로드해 주세요.');
+        return;
+      }
       const md = generateFullMarkdown();
       const payload = {
         baseName: state.baseName,
@@ -1842,7 +1909,7 @@
           master: state.master,
           segments: state.segments.map((s) => ({
             ...s,
-            keyframes: (s.keyframes || []).map((k) => ({ name: k.name, time: k.time, palette: k.palette, lightingTone: k.lightingTone }))
+            keyframes: (s.keyframes || []).map((k) => ({ name: k.name, time: k.time, url: k.url, palette: k.palette, lightingTone: k.lightingTone }))
           }))
         },
         markdown: md
@@ -1855,44 +1922,6 @@
       });
       const out = await res.json();
       if (out.ok && !silent) {
-        showToast(`서버 저장 완료! (reports/${state.baseName}.md)`);
-        loadVideoLibrary(false);
-      }
-    }
-        lines.push('');
-      });
-
-      return lines.join('\n');
-    }
-
-    async function saveAllToServer() {
-      if (!state.baseName) return showToast('먼저 동영상을 업로드해 주세요.');
-      const md = generateFullMarkdown();
-      const payload = {
-        baseName: state.baseName,
-        data: {
-          filename: state.filename,
-          baseName: state.baseName,
-          duration: state.duration,
-          width: state.width,
-          height: state.height,
-          aspectRatio: state.aspectRatio,
-          master: state.master,
-          segments: state.segments.map((s) => ({
-            ...s,
-            keyframes: (s.keyframes || []).map((k) => ({ name: k.name, time: k.time, palette: k.palette, lightingTone: k.lightingTone }))
-          }))
-        },
-        markdown: md
-      };
-
-      const res = await fetch('/api/save-report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const out = await res.json();
-      if (out.ok) {
         showToast(`서버 저장 완료! (reports/${state.baseName}.md)`);
         loadVideoLibrary(false);
       }
@@ -1919,7 +1948,7 @@
           return;
         }
         listEl.innerHTML = data.videos.map((v) => `
-          <div class="video-lib-item" onclick="loadVideoFromUrl('${v.url}', '${v.filename}')">
+          <div class="video-lib-item" onclick="loadVideoFromUrl('${v.url}', decodeURIComponent('${encodeURIComponent(v.filename)}'))">
             <div>
               <strong style="color:var(--text-main);">🎬 ${v.filename}</strong>
               <span style="color:var(--text-sub); margin-left:6px;">(${(v.size / 1024 / 1024).toFixed(1)} MB)</span>
